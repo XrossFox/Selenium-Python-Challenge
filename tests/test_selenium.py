@@ -2,9 +2,16 @@ import unittest
 import pathlib
 import time
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 unittest.TestLoader.sortTestMethodsUsing = None
 
 class SeleniumTests(unittest.TestCase):
+
+    _menu_elements = None
+    _price_of_first_element = None
 
     @classmethod
     def setUpClass(self) -> None:
@@ -12,7 +19,7 @@ class SeleniumTests(unittest.TestCase):
         self.firefox_driver_path = self.current_dir+"\\..\\driver\\geckodriver.exe"
         self.driver = webdriver.Firefox(executable_path=self.firefox_driver_path)
         self.driver.implicitly_wait(5)
-        self.menu_elements = []
+        self._menu_elements = []
 
     def test_step_01(self) -> None:
         '''
@@ -21,7 +28,6 @@ class SeleniumTests(unittest.TestCase):
         print("step: 1")
         self.driver.get("https://www.microsoft.com/en-us/")
         
-    def test_step_02(self) -> None:
         '''
         2. Validate all menu items are present (Office - Windows - Surface - Xbox - Deals - Support)
         '''
@@ -48,21 +54,18 @@ class SeleniumTests(unittest.TestCase):
         menu_text_7 = self.driver.find_element_by_id("l1_support").text
         self.assertEqual(menu_text_7, "Support")
 
-    def test_step_03(self) -> None:
         '''
         3. Go to Windows
         '''
         print("step: 3")
         self.driver.find_element_by_id("shellmenu_2").click()
 
-    def test_step_04(self) -> None:
         '''
         4. Once in Windows page, click on Windows 10 Menu
         '''
         print("step: 4")
         self.driver.find_element_by_id("c-shellmenu_54").click()
 
-    def test_step_05(self) -> None:
         '''
         5. Print all Elements in the dropdown
         '''
@@ -71,14 +74,12 @@ class SeleniumTests(unittest.TestCase):
         for element in menu_elements:
             print(element.text)
         
-    def test_step_06(self) -> None:
         '''
         6. Go to Search next to the shopping cart
         '''
         print("step: 6")
         self.driver.find_element_by_id("search").click()
 
-    def test_step_07(self) -> None:
         '''
         7. Search for Visual Studio
         '''
@@ -86,69 +87,67 @@ class SeleniumTests(unittest.TestCase):
         self.driver.find_element_by_id("cli_shellHeaderSearchInput").send_keys("Visual Studio")
         self.driver.find_element_by_id("search").click()
 
-    def test_step_08(self) -> None:
         '''
         8. Print the price for the 3 first elements listed in Software result list
         '''
         print("step: 8")
         time.sleep(0.2) # woah, hol'up, sonic.
         self.driver.find_element_by_xpath("//*[@id=\"R1MarketRedirect-close\"]").click()
-        self.menu_elements = self.driver.find_elements_by_xpath(
+        self._menu_elements = self.driver.find_elements_by_xpath(
             "//*[@class=\"m-channel-placement-item f-wide f-full-bleed-image\"]/a/div[2]/div/div/span[3]/span[1]")
 
         print("Here is your search for Visual Studio")
         for i in range(3):
-            print(self.menu_elements[i].get_attribute("content"))
+            print(self._menu_elements[i].get_attribute("content"))
 
-    def test_step_09(self) -> None:
         '''
         9. Store the price of the first one
         '''
         print("step: 9")
-        self.price_of_first_element = self.menu_elements[0].get_attribute("content")
+        self._menu_elements = self.driver.find_elements_by_xpath(
+            "//*[@class=\"m-channel-placement-item f-wide f-full-bleed-image\"]/a/div[2]/div/div/span[3]/span[1]")
+        self._price_of_first_element = self._menu_elements[0].get_attribute("content")
 
-    def test_step_010(self) -> None:
         '''
         10. Click on the first one to go to the details page
         '''
         print("step: 10")
-        first_element = self.driver.find_element_by_xpath("//*[@class=\"m-channel-placement-item f-wide f-full-bleed-image\"]/a[1]").click()
+        self.driver.find_element_by_xpath("//*[@class=\"m-channel-placement-item f-wide f-full-bleed-image\"]/a[1]").click()
 
-    def test_step_011(self) -> None:
         '''
         11. Once in the details page, validate both prices are the same
         '''
         print("step: 11")
-        inside_price = self.driver.find_element_by_xpath("//*[@id=\"ProductPrice_productPrice_PriceContainer-6\"]/span")
+        WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.c-glyph"))).click()
+        inside_price = self.driver.find_element_by_xpath("//*[@id=\"productPrice\"]/div/div/div/span")
         inside_price.click()
-        self.assertEqual(inside_price, self.price_of_first_element)
+        self.assertEqual(inside_price.text, self._price_of_first_element)
 
-    def test_step_012(self) -> None:
         '''
         12. Click Add To Cart
         '''
         print("step: 12")
+        # let that thing load
+        time.sleep(.2)
         add_to_cart = self.driver.find_element_by_id("buttonPanel_AddToCartButton")
-        add_to_cart.click()
+        actions = ActionChains(self.driver)
+        actions.move_to_element(add_to_cart)
+        actions.click(add_to_cart)
+        actions.perform()
 
-    def test_step_013(self) -> None:
         '''
         13. Verify all 3 price amounts are the same
         '''
         print("step: 13")
-        price_1 = self.driver.find_element_by_xpath("//*[@id=\"store-cart-root\"]"+
-                                                     "/div/div/div/section[1]/div/div/"+
-                                                     "div/div/div/div[2]/div[2]/div[2]"+
-                                                     "/div/span/span[2]/span")
+        price_1 = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, "//*[@id=\"store-cart-root\"]/div/div/div/section[1]/div/div/div/div/div/div[2]/div[2]/div[2]/div/span/span[2]/span"))).text
 
-        price_2 = self.driver.find_element_by_xpath("//*[@id=\"store-cart-root\"]/div/div/div/section[2]/div/div/div[1]/div/span[1]/span[2]/div/span/span[2]/span")
+        price_2 = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, "//*[@id=\"store-cart-root\"]/div/div/div/section[2]/div/div/div[1]/div/span[1]/span[2]/div/span/span[2]/span"))).text
 
-        price_3 = self.driver.find_element_by_xpath("//*[@id=\"store-cart-root\"]/div/div/div/section[2]/div/div/div[2]/div/span/span[2]/strong/span")
+        price_3 = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, "//*[@id=\"store-cart-root\"]/div/div/div/section[2]/div/div/div[2]/div/span/span[2]/strong/span"))).text
 
-        self.assertEqual(price_1.text, price_2.text)
+        self.assertEqual(price_1, price_2)
         self.assertEqual(price_2, price_3)
 
-    def test_step_014(self):
         '''
         14. On the # of items dropdown select 20 and validate the Total amount is Unit Price * 20
         '''
@@ -157,6 +156,6 @@ class SeleniumTests(unittest.TestCase):
         select.click()
         select_20 = self.driver.find_element_by_xpath(".//*/option[20]")
         select_20.click()
-        total_price = self.driver.find_element_by_xpath("//*[@id=\"store-cart-root\"]/div/div/div/section[2]/div/div/div[2]/div/span/span[2]/strong/span")
-        self.assertEqual("$23,980.00", total_price.text)
+        total_price = WebDriverWait(self.driver, 20).until(EC.text_to_be_present_in_element((By.XPATH, "/html/body/section/div[1]/div/div/div/div/div/section[2]/div/div/div[2]/div/span/span[2]/strong/span"), "$23,980.00"))
+        # self.assertEqual("$23,980.00", total_price.text)
 
